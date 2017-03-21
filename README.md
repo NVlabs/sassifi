@@ -1,4 +1,4 @@
-# SASSIFI
+# SASSIFI: An Architecture-level Fault Injection Tool for GPU Application Resilience Evaluations
 
 SASSIFI provides an automated framework to perform error injection campaigns for GPU application resilience evaluation.  SASSIFI builds on top of [SASSI](https://github.com/NVlabs/SASSI), which is a low-level assembly-language instrumentation tool that provides the ability to instrument instructions in the low-level GPU assembly language (SASS).  SASSIFI can be used to perform many types of resilience evaluation studies. Our ISPASS 2017 paper explains the tool in detail and presents a few case studies. 
 
@@ -12,7 +12,7 @@ SASSIFI can be operated in three modes based on the type of study one wants to p
 * IOA (Instruction Output Address) mode: In this mode, we inject errors into destination register indices and store addresses. 
 * RF (Register File) mode: In this mode, we inject bit-flips in the RF, randomly spread across time and space (among allocated registers). 
 
-## Where can SASSIFI inject errors
+## Where can SASSIFI inject errors?
 
 For the IOA mode, SASSIFI can inject errors in the outputs of randomly selected instructions. SASSIFI allows us to select different types of instructions to study how error in them will propagate to the application output. As of now (3/10/2017), SASSIFI supports selecting the following instruction groups. 
  * Instructions that write to general purpose registers (GPR) 
@@ -35,7 +35,7 @@ In the IOA mode, SASSIFI supports selecting the following two instruction groups
 
 For the RF mode (injections to measure RF AVF), SASSIFI selects a dynamic instruction randomly from a program and injects an error in a randomly selected register among the allocated registers.  Results obtained from these injections will quantify the probability with which a particle strike in an allocated register can manifest in the application output.  These results need to be further derated by the fraction of physical registers that are unallocated to obtain AVF of the register file for a specific device (instructions to obtain the derating factor are provided in sassifi-user-guide.pdf). 
 
-##  What errors can SASSIFI inject
+##  What errors can SASSIFI inject?
 
 For the IOV mode, SASSIFI can inject the error in a destination register based on the different Bit Flip Models (BFM).  In the current release, the following BFMs are implemented. 
 
