@@ -1,0 +1,156 @@
+\section{Introduction}
+\label{sec:intro}
+
+SASSIFI provides an automated framework to perform error injection campaigns
+for GPU application resilience evaluation.  SASSIFI builds on top of SASSI,
+which is a low-level assembly-language instrumentation tool  that provides the
+ability to instrument instructions in the low-level GPU assembly language
+(SASS)~\cite{SASSI_ISCA}.
+
+SASSIFI can be used to perform many types of resilience studies. Some examples
+are:
+
+\begin{enumerate}
+
+	\item What is the probability that a particle-strike on the
+		register file while an application is running will produce an
+		SDC? Answering this question allows us to quantify the benefit
+		of adding ECC to the register file.  If the SDC probability is
+		low, the energy cost of enabling ECC may not be justified. 
+		This is a commonly used architecture-level error model.
+
+	\item What is the probability that a bit-flip in the destination
+		register of an executing instruction will result in an SDC?  This study
+		aims to quantify the effect of bit-flips in low-level unprotected state at
+		the application-level by injecting the manifestation at the
+		architecture-level, a commonly studied topic in academia.
+
+	\item What instruction types are likely to produce more SDCs when
+		subjected to errors in destination registers? This study can provide 
+		insights into what to protect while employing selective
+		instruction-level protection/duplication schemes.
+
+	\item How do SDC probabilities change when different architecture-level
+		states are subjected to errors (e.g., injecting errors into
+		values vs.\ addresses of executing instruction)?  How do the
+		results change if we inject different bit-flip patterns (e.g.,
+		injecting single vs.\ double bit flips)?  Addressing these
+		questions provide insight into the accuracy of the commonly
+		used error model (single-bit flips in values) in evaluating
+		resilience of an application from bit-flips in low-level state
+		(e.g., flip-flops) and what to consider for future studies.
+
+\end{enumerate}
+
+For these studies, we want to inject errors using different error models. Since
+SASSIFI injects errors through instrumentation handlers, we created three modes
+of operation which require instrumentation handlers to be inserted before,
+after, and both before and after the instruction, respectively. 
+
+For studies such as (1), we designed a mode called the {\it RF mode} where we
+inject bit-flips in the Register File (RF), randomly spread across time and
+space (among allocated registers).  For studies such as (2) and (3), we
+designed a mode that injects errors into the destination register values by
+instrumenting instructions after they are executed. We call this mode {\it IOV}
+(Instruction Output Value). Finally, we desinged the third mode called the {\it
+IOA} (Instruction Output Address) mode to inject errors into destination
+register indices and store addresses. We can use the IOA and IOV modes to
+perform the fourth study. 
+
+For more details about how SASSIFI can be used to conduct resilience evaluation
+studies and some results, please see the SASSIFI ISPASS 2017
+paper~\cite{SASSIFI_ISPASS}.  The resilience case study in the SASSI ISCA 2015
+paper~\cite{SASSI_ISCA} and SASSIFI SELSE 2015
+presentation~\cite{SASSIFI_SELSE} also offer some details and results. 
+Portions of the documentation are from our IPASS 2017 paper, which is
+copyrighted by IEEE.
+
+
+\section{Where can SASSIFI inject errors?}
+\label{sec:where}
+
+For the IOA-mode (instruction output-level injections), SASSIFI can inject
+errors in the outputs of randomly selected instructions. SASSIFI allows us to
+select different types of instructions to study how error in them will
+propagate to the application output. As of now (3/10/2017), SASSIFI supports
+selecting the following instruction groups. 
+\begin{itemize}
+\item Instructions that write to general purpose registers (GPR) 
+\item Instructions that write to condition code (CC) 
+\item Instructions that write to a predicate register (PR) 
+\item Store instruction (ST)
+\item Integer add and multiply instructions (IADD-IMAD-OP)
+\item Single precision floating point add and multiply instructions (FADD-FMUL-OP)
+\item Double precision floating point add and multiply instructions (DFADD-DFMUL-OP)
+\item Integer fused multiply and add (MAD) instructions (MAD-OP)
+\item Single precision floating point fused multiply and add (FMA) instructions  (FMA-OP)
+\item Double precision floating point fused multiply and add (DFMA) instructions  (DFMA-OP)
+\item Instructions that compare source registers and set a predicate register (SETP-OP)
+\item Loads from shared memory (LDS-OP)
+\item Load instructions, excluding LDS instructions (LD-OP)
+\end{itemize}
+
+SASSIFI can be extended to include custom instruction groups. Follow
+instructions in Section~\ref{sec:new_inst_group} to create new instruction
+groups. Details about the current instruction grouping, i.e., which SASS
+instructions are included in different groups, can be found in
+\$SASSIFI\_HOME/err\_injector/error\_injector.h.
+
+In the IOA mode, SASSIFI supports selecting the following two instruction
+groups -- GPR and ST. At these instructions, SASSIFI injects errors into the
+address (register index or store address) based on the following defined
+bit-flip models. 
+
+
+For the RF mode (injections to measure RF AVF), SASSIFI selects a dynamic
+instruction randomly from a program and injects an error in a randomly selected
+register among the allocated registers.  Results obtained from these injections
+will quantify the probability with which a particle strike in an allocated
+register can manifest in the application output.  These results need to be
+further derated by the fraction of physical registers that are unallocated to
+obtain AVF of the register file for a specific device. 
+
+We can obtain the average number of allocated physical registers per kernel by
+multiplying the number of statically allocated registers per thread with the
+average number of active threads (number of active warps $\times$ 32) in an SM.
+We divide this value with the total number of physical registers in the SM to
+obtain the fraction of allocated registers.  We can obtain the average number
+of active warps from the {\it achieved\_occupancy} metric as printed by the
+{\it nvprof} tool. We can obtain the number of allocated registers during the
+compilation step using {\it -Xptxas -v} option. We then use these per kernel
+dertaing factors and weigh them with the relative kernel runtimes for each
+application to obtain a per application derating factor.
+
+\section{What errors can SASSIFI inject?}
+\label{sec:what}
+
+For the IOV mode, SASSIFI can inject the error in a destination register based on
+the different Bit Flip Models ({\it BFM}).  In the current release, the following BFMs are implemented. 
+
+\begin{enumerate}
+\item Single bit-flip: one bit-flip in one register in one thread
+\item Double bit-flip: bit-flips in two adjacent bits in one register in one thread
+\item Random value: random value in one register in one thread
+\item Zero value: zero out the value of one register in one thread
+\item Warp wide single bit-flip: one bit-flip in one register in all the threads in a warp
+\item Warp wide double bit-flip: bit-flips in two adjacent bits in one register in all the threads in a warp
+\item Warp wide random value: random value in one register in all the threads in a warp
+\item Warp wide zero value: zero out the value of one register in all the threads in a warp
+\end{enumerate}
+
+In the current implementation, we can only inject single bit-flip in one
+register in one thread (first bit-flip model) for the CC and PR injections. For
+the SETP-OP instruction group, we can inject only single bit-flip and warp
+wide single bit-flip (first and fifth bit-flip models, respectively).
+
+For the IOA and RF modes, SASSIFI considers the following two bit-flip models.  
+\begin{itemize}
+\item Single bit-flip 
+\item Double bit-flip 
+\end{itemize}
+
+These BFMs can be extended to include different bit-flip pattern. To add a new
+bit-flip model err\_injector.h and injector.cu files in err\_injector directory
+and common\_params.py and specific\_params.py files in the scripts directory
+need to be modified. 
+

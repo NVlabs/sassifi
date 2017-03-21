@@ -1,0 +1,77 @@
+\section{Adding a new instruction group for error injections}
+\label{sec:new_inst_group}
+
+As mentioned in Section~\ref{sec:where}, SASSIFI can be extended to include
+custom instruction groups. Here we outline the changes needed to add a new
+instruction group to SASSIFI. 
+
+\begin{itemize}
+\item Assign a name to the new instruction group (e.g., NEW\_OP) and add it to
+the {\it enum INST\_TYPE} in err\_injector/error\_injector.h. Include it in the
+instCatName array in the same file. 
+
+\item Identify the SASSI opcodes that should be included in this new group and
+update the get\_op\_category function in err\_injector/error\_injector.h
+accordingly. The list of available opcodes can be found in the sassi-opcodes.h.
+
+\item Specify what to do in the sassi\_after\_handler for error injection. For
+the IOV mode injections, simply add a {\it case} in the
+{\it switch} statement in the sassi\_after\_handler function in
+err\_injector/injector.cu, similar to the IADD\_IMUL\_OP.  For the IOA mode injections, add an
+{\it if} statement in the sassi\_after\_handler function similar to the STORE\_OP instructions.
+
+\item Update the scripts such that error injection sites will be created and
+injection jobs will be launched for the new instruction group. Update the
+categories of the instruction types in scripts/common\_params.py such that it
+matches the  {\it enum INST\_TYPE} in err\_injector/error\_injector.h.  Finally
+add the new instruction group and the associated bit-flip models in the
+inst\_value\_igid\_bfm\_map or inst\_address\_igid\_bfm\_map in scripts/specific\_params.py.
+
+\end{itemize}
+
+
+\section{Bug reports}
+
+We plan to track issues using GitHub's issue tracking features.
+
+\section{Abbreviations}
+
+This document and the SASSIFI source code uses many abbreviations and we list important ones here:
+
+{\bf SASSIFI}: SASSI-based Fault Injector 
+
+{\bf RF}: Register File
+
+{\bf AVF}: Architecture Vulnerability Factor 
+
+{\bf RF mode}: Injection mode in which the register selected for injection is
+independent of the instruction executing at the time of injection. This mode is
+used to analyze RF AVF. 
+
+{\bf IOV mode}: Injection mode in which the value selected for injection is
+dependent on the instruction executing at the time of injection. We inject errors 
+in the output value of the instruction that just executed. This mode
+allows us to perform targeted error injections on various instruction groups.
+
+{\bf IOA mode}: Injection mode in which the address selected for injection is
+dependent on the instruction executing at the time of injection. We inject
+errors either in the register index or store address of the instruction that
+just executed, based on the instruction type. This mode allows us to perform
+targeted error injections to study the sensitivity of address errors. 
+
+{\bf SDC}: Silent Data Corruption 
+
+{\bf DUE}: Detected Uncorrectable Error 
+
+{\bf Pot DUE}: Potential DUE (could be detected if proper checkers are in place) 
+
+{\bf BFM}: Bit-Flip Model 
+
+{\bf IGID}: Instruction Group ID 
+
+{\bf GPR}: General Purpose Register
+
+{\bf CC}: Condition Code register
+
+{\bf PR}: Predicate Register 
+
