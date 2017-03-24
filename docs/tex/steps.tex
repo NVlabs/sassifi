@@ -1,0 +1,247 @@
+\section{Getting started with SASSIFI}
+
+\subsection{Prerequisites}
+
+\begin{itemize}
+
+\item A linux-based system with an x86 64-bit host, a Fermi-, Kepler-, or
+Maxwell-based GPU. SASSIFI has been tested on Ubuntu (12) and CentOS (6).
+
+\item Python 2.7 is needed to run the scripts provided to generate injection
+sites, launch injection campaign, and parse the results.	
+
+\begin{itemize}
+\item The lockfile module is needed to run the injection jobs in parallel
+either on a multi-gpu system or a cluster of nodes with shared filesystem. 
+Instructions to install the lockfile module can be found here~\cite{lockfile}.
+This module is not needed if you want to run injection jobs sequentially on a
+single-gpu system. 
+\item (Optional) The final results can be parsed into an xlsx file using the
+xlsxwriter module. Instructions to install xlswriter can be found
+here~\cite{XlsxWriter}. The results will be parsed into multiple text files, if
+you do not have xlswriter.  These can be copied into an excel file to plot and
+visualize the results.
+\end{itemize}
+
+\item SASSI, which can be downloaded from GitHub~\cite{SASSI}. SASSIFI is
+tested using the latest commit (5523d984ad047a272297c1a3ff8c63f55c0ad026).
+SASSIFI provides code  that needs to be compiled using the SASSI
+framework.  This code includes SASSI handlers that execute code before and
+after instructions for profiling and error injections. Please follow the steps
+provided in the SASSI documentation to install SASSI. 
+
+\end{itemize}
+
+
+% Directory structure 
+\input{dirstructure}
+
+
+
+\subsection{Setting up and running SASSIFI}
+
+Follow these steps to setup and run SASSIFI. We provide a sample script (test.sh) that automates several of these steps.
+
+\begin{enumerate}
+
+\item {\bf Set the following environment variables}:
+	\begin{itemize}
+		\item SASSIFI\_HOME: Path to the SASSIFI package (e.g., /home/username/sassifi\_package/)
+		\item SASSI\_SRC: Path to the SASSI source package (e.g., /home/username/sassi/)
+		\item INST\_LIB\_DIR: Path to the SASSI libraries (e.g., SASSI\_SRC/instlibs/lib/)
+		\item CCDIR: Path to the gcc version 4.8.4 or newer (e.g., /usr/local/gcc-4.8.4/)
+		\item CUDA\_BASE\_DIR: Path to SASSI installation (e.g., /usr/local/sassi7/)
+		\item LD\_LIBRARY\_PATH should include the cuda libraries (e.g., CUDA\_BASE\_DIR/lib64/  \\
+		and CUDA\_BASE\_DIR/extras/CUPTI/lib64/)
+		\item Ensure that the GENCODE variable is correctly set for the target GPU
+		in SASSI\_SRC/instlibs/env.mk and application makefiles (e.g.,
+		SASSIFI\_HOME/suites/example/simple\_add/Makefile. 
+		\end{itemize}
+\label{step1}
+
+\item {\bf Copy the SASSI Fault Injection (SASSIFI) handler into the SASSI package}:
+		 We provide err\_injector/copy\_handler.sh script to perform this step.
+		 Simply run it from any directory. This script creates a new directory
+		 named err\_injector in the SASSI\_SRC/instlibs/src directory and creates
+		 soft-links for the files provided in the err\_injector directory to avoid
+		 keeping multiple copies of the SASSI handler files.
+\label{step2}
+
+\item {\bf Compile the SASSIFI handlers}:
+		Simply type {\em make} in \$SASSI\_SRC/instlibs/src/err\_injector.  This should
+		create four libraries. The first one is for profiling the application and
+		identifying how many injection points exist. The remaining three are for
+		injecting errors during an application run (one each for the three 
+		injection modes).
+\label{step3}
+
+\item {\bf Prepare applications}:
+		\begin{enumerate}
+
+			\item {\bf Record fault-free outputs:} Record golden output file (as
+			golden.txt) and golden stdout (as golden\_stdout.txt) and golden stderr
+			(as golden\_stderr.txt) in the workload directory (e.g.,
+			\$SASSIFI\_HOME/suites/example/simple\_add/).
+			\label{step41}
+
+			\item {\bf Create application-specific scripts:} Create sassifi\_run.sh
+			and sdc\_check.sh scripts in run/ directory.  These are workload specific
+			and have to be manually created. Instead of using absolute paths, please
+			use environment variables for paths such as BIN\_DIR, APP\_DIR,
+			DATA\_SET\_DIR, and RUN\_SCRIPT\_DIR. These variables are set by
+			run\_one\_injection.py script before launching error injections. See
+			the bash scripts in the run/example/simple\_add/run/ directory for
+			examples. You can also add an application specific check here. 
+			\label{step42}
+
+			\item {\bf Prepare applications to compile with the SASSIFI handlers}:
+			This might require some work. Follow instructions in the SASSI
+			documentation on how to compile your application with a SASSI handler.
+			
+			Tip: Prepare them such that you can type "make OPTION=profiler" to
+			generate binaries to do the profiling step (step 4) and "make
+			OPTION=inst\_value\_injector"  or "make OPTION=inst\_address\_injector" 
+			or "make OPTION=rf\_injector" to generate
+			binaries for error injection campaigns for the three injection modes (see
+			Sections 1 and 2). See makefile in suites/example/simple\_add/ for an
+			example. This makefile installs different versions of the binaries to 
+			\$SASSIFI\_HOME/bin/\$OPTIONS/ directories. 
+			\label{step43}
+
+			\end{enumerate}
+
+\item {\bf Profile the application}:
+		Compile the application with "OPTION=profiler" and run it once with the
+		same inputs that is specified in the sassifi\_run.sh script. A new file
+		named sassifi-inst-counts.txt will be generated in the directory where the
+		application was run. This file contains the instruction counts for all the
+		instruction groups defined in err\_injector/error\_injector.h and all the
+		opcodes defined in sassi-opcodes.h for all the CUDA kernels. One line is
+		created per dynamic kernel invocation and the format in which the data is
+		printed is shown in the first line in the sassifi-inst-counts.txt file. 
+\label{step5}
+
+\item {\bf Build the applications for error injection runs}:
+		Simply run "make OPTION=inst\_value\_injector", "make OPTION=inst\_address\_injector" 
+		and/or "make OPTION=rf\_injector"
+\label{step6}
+
+\item {\bf Generation injection sites}:
+		\begin{enumerate}
+			\item Ensure that the parameters are set correctly in specific\_params.py and
+			common\_params.py files.  Some of the parameters that need user attention
+			are: 
+			\begin{itemize}
+				\item Setting maximum number of error injections to perform per instruction
+				group and bit-flip model combination. See NUM\_INJECTION and
+				THRESHOLD\_JOBS in specific\_params.py file. 
+
+				\item Selecting instruction groups and bit-flip models. See 
+				rf\_bfm\_list,  inst\_value\_igid\_bfm\_map, and 
+				inst\_address\_igid\_bfm\_map in specific\_params.py for the list of
+				supported instruction groups (IGIDs) and bit-flip models (BFMs). Simply
+				uncomment the lines to include the IGID and the associated BFMs. User
+				can also select only a subset of the supported BFMs per IGID for
+				targeted error injection studies.
+
+				\item Listing the applications, benchmark suite name, application
+				binary file name, and the expected runtime on the system where the
+				injection job will be run. See the apps dictionary in
+				specific\_params.py for an example. The dictionary and the strings
+				defined here are used by other scripts to identify the directory
+				structure in the suites directory and the application binary name.  The
+				expected runtime defined here is used later to determine when to
+				timeout injection runs (based on the TIMEOUT\_THRESHOLD defined in
+				common\_params.py).
+
+				\item Setting paths for the suites, logs, bin, and run directories if
+				the user decides to use a different directory structure. If the
+				directory structure for the new benchmark suite that you plan to use is different,
+				please update the app\_dir[app] and app\_data\_dir[app] variables
+				accordingly. 
+			
+				\item Setting the number of allocated registers per static kernel per
+				application. When an application is compiled using {\it -Xptxas -v}
+				flags, the number of registers allocated for each static kernel in the
+				application are printed on the standard error (stderr).  User needs to
+				parse the stderr and update the num\_regs dictionary in the
+				specific\_params.py file. Obtain the number of allocated registers
+				without SASSI instrumentation.  If num\_regs dictionary is incorrect
+				(missing/extra kernel names, fewer/more registers per kernel), then the
+				results will also be incorrect because the number of error injections
+				are chosen based on num\_regs.  We provide the
+				process\_kernel\_regcount.py script that parses the stderr from an
+				input file and creates a dictionary per application which is stored in
+				a pickle file. This pickle file can be loaded directly by the
+				specific\_params.py (see set\_num\_regs() for an example). We process
+				the stderr generated by compiling the simple\_add program using this
+				script in test.sh.
+				
+				The num\_regs dictionary is needed for the RF mode injections. If you do
+				not plan to perform RF mode injections, you can ignore this part.  
+
+			
+			\end{itemize}
+			\label{step71}
+
+			\item Run generate\_injection\_list.py script to generate a file that
+			contains what errors to inject. Instructions are selected randomly for
+			across the entire application for the RF mode and across the instructions
+			from the specified instruction group in the IOV and IOA modes. Since we know the
+			instruction count breakdown per kernel invocation from the profiling
+			phase, we combine the instructions from all the kernel executions (based
+			on the instruction groups) and randomly select dynamic instruction
+			numbers for error injections. We map this dynamic instruction number back
+			to a dynamic kernel invocation index, along with static kernel name. We
+			create a random number (between 0 and 1) for selecting the destination
+			register among the number of destination registers in the selected
+			dynamic instruction for the IOV and IOA modes. We select the register number within
+			the set of allocated registers for the selected static kernel for the
+			RF mode. We also select an additional random number for selecting the
+			bit location to inject the error (according to the chosen bit-flip model). 
+			\label{step72}
+		\end{enumerate}
+
+\item {\bf Run injections}: 
+		Run the run\_injections.py script to launch the error injection campaign.
+		This script will run one injection after the other in the standalone mode.
+		Please do not attempt to run multiple jobs in parallel unless you install
+		the lockfile python module or modify the run\_one\_injection.py script such
+		that it does not write to the same results file.  If you use the multigpu
+		option, mutiple injection jobs will be launched in parallel depending on
+		the number of GPUs present in the system and the parameter  specified in
+		specific\_params.py (NUM\_GPUS).  If you have a cluster of nodes where you
+		can launch injection jobs, you can write some code in the
+		"check\_and\_submit\_cluster" function in run\_injections.py script to
+		launch multiple jobs to the cluster.  
+
+		Tip: Perform a few dummy injections before proceeding with full injection
+		campaign. Go to step~\ref{step3} and look for DUMMY\_INJECTION flag in the
+		makefile. Setting this flag will allow you to go through most of the SASSI
+		handler code, but skip the error injection. This is to ensure that you are
+		not seeing crashes/SDCs that you should not see.
+\label{step8}
+
+\item {\bf Parse results}:
+		Use the sample parse\_results.py script to get an initial set of parsed
+		results.  This script generates an excel workbook with three sheets, if the
+		xlsxwriter python module is found in the system. If not, three text files
+		are created. The first sheet/text file shows the fraction of executed
+		instructions for different instruction groups and opcodes. The second
+		sheet/text file shows the outcomes of the error injections.
+		Table~\ref{tab:error-categories} explains how we categorize error outcomes.
+		The third sheet/text file shows the average runtime for the injection runs
+		for different applications, instruction groups, and bit-flip models. Based
+		on how you want to visualize the results, you may want to modify the script
+		or write your own. 
+\label{step9}
+
+\end{enumerate}
+
+
+In the current setup,
+steps~\ref{step1},~\ref{step2},~\ref{step3},~\ref{step42},~\ref{step43},
+and~\ref{step71} have to be done manually.  Once this is done, the remaining
+steps can be automated and we provide an example script (test.sh) to run these
+steps using a single command (./test.sh from \$SASSIFI\_HOME). 
+
