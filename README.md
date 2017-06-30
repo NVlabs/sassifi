@@ -75,28 +75,29 @@ These BFMs can be extended to include different bit-flip pattern. To add a new b
 Follow these steps to setup and run SASSIFI. We provide a sample script (test.sh) that automates several of these steps.
 
 1. Set the following environment variables:
- * SASSIFI\_HOME: Path to the SASSIFI package (e.g., /home/username/sassifi\_package/)
- * SASSI\_SRC: Path to the SASSI source package (e.g., /home/username/sassi/)
- * INST\_LIB\_DIR: Path to the SASSI libraries (e.g., $SASSI\_SRC/instlibs/lib/)
- * CCDIR: Path to the gcc version 4.8.4 or newer (e.g., /usr/local/gcc-4.8.4/)
- * CUDA\_BASE\_DIR: Path to SASSI installation (e.g., /usr/local/sassi7/)
- * LD\_LIBRARY\_PATH should include the cuda libraries (e.g., $CUDA\_BASE\_DIR/lib64/ and CUDA\_BASE\_DIR/extras/CUPTI/lib64/)
- * Ensure that the GENCODE variable is correctly set for the target GPU in $SASSI\_SRC/instlibs/env.mk and application makefiles (e.g., $SASSIFI\_HOME/suites/example/simple\_add/Makefile). 
+	* SASSIFI\_HOME: Path to the SASSIFI package (e.g., /home/username/sassifi\_package/)
+	* SASSI\_SRC: Path to the SASSI source package (e.g., /home/username/sassi/)
+	* INST\_LIB\_DIR: Path to the SASSI libraries (e.g., $SASSI\_SRC/instlibs/lib/)
+	* CCDIR: Path to the gcc version 4.8.4 or newer (e.g., /usr/local/gcc-4.8.4/)
+	* CUDA\_BASE\_DIR: Path to SASSI installation (e.g., /usr/local/sassi7/)
+	* LD\_LIBRARY\_PATH should include the cuda libraries (e.g., $CUDA\_BASE\_DIR/lib64/ and CUDA\_BASE\_DIR/extras/CUPTI/lib64/)
+	* Ensure that the GENCODE variable is correctly set for the target GPU in $SASSI\_SRC/instlibs/env.mk and application makefiles (e.g., $SASSIFI\_HOME/suites/example/simple\_add/Makefile). 
 
 2. Copy the SASSI Fault Injection (SASSIFI) handlers into the SASSI package:
- * We provide err\_injector/copy\_handler.sh script to perform this step. Simply run it from any directory. This script creates a new directory named err\_injector in the SASSI\_SRC/instlibs/src directory and creates soft-links for the files provided in the err\_injector directory to avoid keeping multiple copies of the SASSI handler files.
+ 	* We provide err\_injector/copy\_handler.sh script to perform this step. Simply run it from any directory. This script creates a new directory named err\_injector in the SASSI\_SRC/instlibs/src directory and creates soft-links for the files provided in the err\_injector directory to avoid keeping multiple copies of the SASSI handler files.
 
 3. Compile the SASSIFI handlers:
- * Simply type `make` in $SASSI\_SRC/instlibs/src/err\_injector.  This should create four libraries. The first one is for profiling the application. The remaining three are for injecting errors during an application run (one each for the three injection modes).
+ 	* Simply type `make` in $SASSI\_SRC/instlibs/src/err\_injector.  This should create four libraries. The first one is for profiling the application. The remaining three are for injecting errors during an application run (one each for the three injection modes).
 
 4. Prepare applications:
 
- 1. Record fault-free outputs: Record golden output file (as golden.txt) and golden stdout (as golden\_stdout.txt) and golden stderr (as golden\_stderr.txt) in the workload directory (e.g., $SASSIFI\_HOME/suites/example/simple\_add/).
+ 	1. Record fault-free outputs: Record golden output file (as golden.txt) and golden stdout (as golden\_stdout.txt) and golden stderr (as golden\_stderr.txt) in the workload directory (e.g., $SASSIFI\_HOME/suites/example/simple\_add/).
 
- 2. Create application-specific scripts: Create sassifi\_run.sh and sdc\_check.sh scripts in run/ directory.  These are workload specific and have to be manually created. Instead of using absolute paths, please use environment variables for paths such as BIN\_DIR, APP\_DIR, DATA\_SET\_DIR, and RUN\_SCRIPT\_DIR. These variables are set by run\_one\_injection.py script before launching error injections. See the bash scripts in the run/example/simple\_add/run/ directory for examples. You can also add an application specific check here. 
+ 	2. Create application-specific scripts: Create sassifi\_run.sh and sdc\_check.sh scripts in run/ directory.  These are workload specific and have to be manually created. Instead of using absolute paths, please use environment variables for paths such as BIN\_DIR, APP\_DIR, DATA\_SET\_DIR, and RUN\_SCRIPT\_DIR. These variables are set by run\_one\_injection.py script before launching error injections. See the bash scripts in the run/example/simple\_add/run/ directory for examples. You can also add an application specific check here. 
 
- 3. Prepare applications to compile with the SASSIFI handlers: This might require some work. Follow instructions in the SASSI documentation on how to compile your application with a SASSI handler.
-  * Tip: Prepare them such that you can type "make OPTION=profiler" to generate binaries to do the profiling step (step 4) and "make OPTION=inst\_value\_injector"  or "make OPTION=inst\_address\_injector" or "make OPTION=rf\_injector" to generate binaries for error injection campaigns for the three injection modes. See makefile in suites/example/simple\_add/ for an example. This makefile installs different versions of the binaries to $SASSIFI\_HOME/bin/$OPTIONS/ directories. 
+ 	3. Prepare applications to compile with the SASSIFI handlers: This might require some work. Follow instructions in the SASSI documentation on how to compile your application with a SASSI handler.
+	
+  	* Tip: Prepare them such that you can type "make OPTION=profiler" to generate binaries to do the profiling step (step 4) and "make OPTION=inst\_value\_injector"  or "make OPTION=inst\_address\_injector" or "make OPTION=rf\_injector" to generate binaries for error injection campaigns for the three injection modes. See makefile in suites/example/simple\_add/ for an example. This makefile installs different versions of the binaries to $SASSIFI\_HOME/bin/$OPTIONS/ directories. 
 
 5. Profile the application: Compile the application with "OPTION=profiler" and run it once with the same inputs that is specified in the sassifi\_run.sh script. A new file named sassifi-inst-counts.txt will be generated in the directory where the application was run. This file contains the instruction counts for all the instruction groups defined in err\_injector/error\_injector.h and all the opcodes defined in sassi-opcodes.h for all the CUDA kernels. One line is created per dynamic kernel invocation and the format in which the data is printed is shown in the first line in the sassifi-inst-counts.txt file. 
 
@@ -104,23 +105,23 @@ Follow these steps to setup and run SASSIFI. We provide a sample script (test.sh
 
 7. Generate injection sites:
 
- 1. Ensure that the parameters are set correctly in specific\_params.py and common\_params.py files.  Some of the parameters that need user attention are: 
+ 	1. Ensure that the parameters are set correctly in specific\_params.py and common\_params.py files.  Some of the parameters that need user attention are: 
 
-	* Setting maximum number of error injections to perform per instruction group and bit-flip model combination. See NUM\_INJECTION and THRESHOLD\_JOBS in specific\_params.py file. 
+		* Setting maximum number of error injections to perform per instruction group and bit-flip model combination. See NUM\_INJECTION and THRESHOLD\_JOBS in specific\_params.py file. 
 
-	* Selecting instruction groups and bit-flip models. See rf\_bfm\_list,  inst\_value\_igid\_bfm\_map, and inst\_address\_igid\_bfm\_map in specific\_params.py for the list of supported instruction groups (IGIDs) and bit-flip models (BFMs). Simply uncomment the lines to include the IGID and the associated BFMs. User can also select only a subset of the supported BFMs per IGID for targeted error injection studies.
+		* Selecting instruction groups and bit-flip models. See rf\_bfm\_list,  inst\_value\_igid\_bfm\_map, and inst\_address\_igid\_bfm\_map in specific\_params.py for the list of supported instruction groups (IGIDs) and bit-flip models (BFMs). Simply uncomment the lines to include the IGID and the associated BFMs. User can also select only a subset of the supported BFMs per IGID for targeted error injection studies.
 
-	* Listing the applications, benchmark suite name, application binary file name, and the expected runtime on the system where the injection job will be run. See the apps dictionary in specific\_params.py for an example. The dictionary and the strings defined here are used by other scripts to identify the directory structure in the suites directory and the application binary name.  The expected runtime defined here is used later to determine when to timeout injection runs (based on the TIMEOUT\_THRESHOLD defined in common\_params.py).
+		* Listing the applications, benchmark suite name, application binary file name, and the expected runtime on the system where the injection job will be run. See the apps dictionary in specific\_params.py for an example. The dictionary and the strings defined here are used by other scripts to identify the directory structure in the suites directory and the application binary name.  The expected runtime defined here is used later to determine when to timeout injection runs (based on the TIMEOUT\_THRESHOLD defined in common\_params.py).
 
-	* Setting paths for the suites, logs, bin, and run directories if the user decides to use a different directory structure. If the directory structure for the new benchmark suite that you plan to use is different, please update the app\_dir[app] and app\_data\_dir[app] variables accordingly. 
+		* Setting paths for the suites, logs, bin, and run directories if the user decides to use a different directory structure. If the directory structure for the new benchmark suite that you plan to use is different, please update the app\_dir[app] and app\_data\_dir[app] variables accordingly. 
 
-	* Setting the number of allocated registers per static kernel per application. When an application is compiled using `-Xptxas -v` flags, the number of registers allocated for each static kernel in the application are printed on the standard error (stderr).  User needs to parse the stderr and update the num\_regs dictionary in the specific\_params.py file. Obtain the number of allocated registers without SASSI instrumentation.  If num\_regs dictionary is incorrect (missing/extra kernel names, fewer/more registers per kernel), then the results will also be incorrect because the number of error injections are chosen based on num\_regs.  We provide the process\_kernel\_regcount.py script that parses the stderr from an input file and creates a dictionary per application which is stored in a pickle file. This pickle file can be loaded directly by the specific\_params.py (see set\_num\_regs() for an example). We process the stderr generated by compiling the simple\_add program using this script in test.sh.  The num\_regs dictionary is needed for the RF mode injections. If you do not plan to perform RF mode injections, you can ignore this part.  
+		* Setting the number of allocated registers per static kernel per application. When an application is compiled using `-Xptxas -v` flags, the number of registers allocated for each static kernel in the application are printed on the standard error (stderr).  User needs to parse the stderr and update the num\_regs dictionary in the specific\_params.py file. Obtain the number of allocated registers without SASSI instrumentation.  If num\_regs dictionary is incorrect (missing/extra kernel names, fewer/more registers per kernel), then the results will also be incorrect because the number of error injections are chosen based on num\_regs.  We provide the process\_kernel\_regcount.py script that parses the stderr from an input file and creates a dictionary per application which is stored in a pickle file. This pickle file can be loaded directly by the specific\_params.py (see set\_num\_regs() for an example). We process the stderr generated by compiling the simple\_add program using this script in test.sh.  The num\_regs dictionary is needed for the RF mode injections. If you do not plan to perform RF mode injections, you can ignore this part.  
 
- 2. Run generate\_injection\_list.py script to generate a file that contains what errors to inject. Instructions are selected randomly for across the entire application for the RF mode and across the instructions from the specified instruction group in the IOV and IOA modes. See sassi-user-guide.pdf for details about what information is collected per injection and how it is used by the next step. 
+ 	2. Run generate\_injection\_list.py script to generate a file that contains what errors to inject. Instructions are selected randomly for across the entire application for the RF mode and across the instructions from the specified instruction group in the IOV and IOA modes. See sassi-user-guide.pdf for details about what information is collected per injection and how it is used by the next step. 
 
 8. Run injections: Run the run\_injections.py script to launch the error injection campaign.  This script will run one injection after the other in the standalone mode.  If you plan to run multiple jobs in parallel, special care must be taken to ensure that the output file is not clobbered. As of now, we support running multiple jobs on a multi-GPU system. Please see sassi-user-guide.pdf for more details. 
 
- * Tip: Perform a few dummy injections before proceeding with full injection campaign. Go to step 3 and look for DUMMY\_INJECTION flag in the makefile. Setting this flag will allow you to go through most of the SASSI handler code, but skip the error injection. This is to ensure that you are not seeing crashes/SDCs that you should not see.
+	* Tip: Perform a few dummy injections before proceeding with full injection campaign. Go to step 3 and look for DUMMY\_INJECTION flag in the makefile. Setting this flag will allow you to go through most of the SASSI handler code, but skip the error injection. This is to ensure that you are not seeing crashes/SDCs that you should not see.
 
 9. Parse results: Use the parse\_results.py script to parse the results. This script generates an excel workbook with three sheets, if the xlsxwriter python module is found in the system. If not, three text files are created. The first sheet/text file shows the fraction of executed instructions for different instruction groups and opcodes. The second sheet/text file shows the outcomes of the error injections.  Refer to the documentation to see how we categorize error outcomes.  The third sheet/text file shows the average runtime for the injection runs for different applications, instruction groups, and bit-flip models. Based on how you want to visualize the results, you may want to modify the script or write your own. 
 
