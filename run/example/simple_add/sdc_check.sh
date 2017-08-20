@@ -8,5 +8,5 @@ diff  <(sed 's/:::Injecting.*::://g' stdout.txt) ${APP_DIR}/golden_stdout.txt > 
 diff stderr.txt ${APP_DIR}/golden_stderr.txt > stderr_diff.log
 # Application specific output: The following check will be performed only if at least one of diff.log, stdout_diff.log, and stderr_diff.log is different
 grep sum stdout.txt > selected_output.txt 
-grep sum ${APP_DIR}/golden_stderr.txt > selected_golden_output.txt 
+grep sum ${APP_DIR}/golden_stdout.txt > selected_golden_output.txt 
 diff selected_output.txt selected_golden_output.txt > special_check.log
